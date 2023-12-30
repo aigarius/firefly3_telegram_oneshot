@@ -116,7 +116,7 @@ def _find_dest_account(part):
         if ratio < 60:
             logger.warning("Match too bad, should make a new account")
         return accounts[name], name
-        # TODO create an account if none found
+        # TODO create an account if asked (prefix "+")
     return 9, "Unknown"
 
 
@@ -131,11 +131,8 @@ def _find_category(part):
         if ratio < 60:
             logger.warning("Match too bad, should make a new category")
         return categories[name], name
-        # TODO create a category if none found
+        # TODO create a category if asked (prefix "+")
     return 3, "Entertainment - food outside"
-
-# Define a few command handlers. These usually take the two arguments update and
-# context.
 
 
 async def restrict(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -154,9 +151,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
     await update.message.reply_text("""
-    Add a new transaction by giving amount and description.
-    /undo to delete /last transaction.
-    Check categories with /cat and destination accounts with /dest
+Add a new transaction by giving amount and description.
+Use /undo to delete /last transaction.
+Check categories with /cat and destination accounts with /dest
     """)
 
 
@@ -276,7 +273,8 @@ def main() -> None:
         "dest", dest_command, has_args=True))
     application.add_handler(CommandHandler("cat", cat_command, has_args=True))
 
-    # on non command i.e message - echo the message on Telegram
+    # on non command i.e message - parse a new transaction out
+    # of the message
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, add))
 
