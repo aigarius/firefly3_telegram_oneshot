@@ -181,8 +181,7 @@ def _get_last_transaction():
 async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Mark the last added transaction as deleted"""
     msg, id = _get_last_transaction()
-    r = _get_data_from_request(f"transactions/{id}/", method="DELETE")
-    r.raise_for_status()
+    _get_data_from_request(f"transactions/{id}/", method="DELETE")
     await update.message.reply_text("Deleted: " + msg)
 
 
