@@ -80,15 +80,19 @@ def _get_data_from_request(url, first=False, method="GET", post_data=None):
         },
         json=post_data,
     )
-    if method != "GET":
+    if method == "DELETE":
         logger.info("Data: %s", r.text)
         r.raise_for_status()
         return
+    if method != "GET":
+        logger.info("Data: %s", r.text)
+        r.raise_for_status()
+
     data = r.json()
     if "data" not in data:
         logger.error("Bad data: %s", data)
     real_data = data["data"]
-    if first:
+    if first or method != "GET":
         return real_data
     if "links" in data and data["links"]["self"] != data["links"]["last"]:
         logger.info("Next page is there!")
@@ -114,6 +118,20 @@ def _get_expense_accounts_data():
 
 def _find_dest_account(part):
     if part:
+        part = part.strip()
+        if part.startswith("+"):
+            name = part[1:].strip()
+            if not name:
+                logger.warning("Cannot create account with empty name.")
+                return None, None
+            try:
+                data = _get_data_from_request("accounts", method="POST", post_data={"name": name, "type": "expense"})
+                _get_expense_accounts_data.cache_clear()
+                return data["id"], data["attributes"]["name"]
+            except requests.exceptions.RequestException as e:
+                logger.error("Failed to create account '%s': %s", name, e)
+                return None, None
+
         t = _get_expense_accounts_data()
         accounts = {
             a["attributes"]["name"]: a["id"]
@@ -123,7 +141,6 @@ def _find_dest_account(part):
         if ratio < 60:
             logger.warning("Match too bad, should make a new account")
         return accounts[name], name
-        # TODO create an account if asked (prefix "+")
     return None, None
 
 
@@ -134,6 +151,20 @@ def _get_categories_data():
 
 def _find_category(part):
     if part:
+        part = part.strip()
+        if part.startswith("+"):
+            name = part[1:].strip()
+            if not name:
+                logger.warning("Cannot create category with empty name.")
+                return None, None
+            try:
+                data = _get_data_from_request("categories", method="POST", post_data={"name": name})
+                _get_categories_data.cache_clear()
+                return data["id"], data["attributes"]["name"]
+            except requests.exceptions.RequestException as e:
+                logger.error("Failed to create category '%s': %s", name, e)
+                return None, None
+
         t = _get_categories_data()
         categories = {
             a["attributes"]["name"]: a["id"]
@@ -143,7 +174,6 @@ def _find_category(part):
         if ratio < 60:
             logger.warning("Match too bad, should make a new category")
         return categories[name], name
-        # TODO create a category if asked (prefix "+")
     return None, None
 
 
