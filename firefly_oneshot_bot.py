@@ -262,9 +262,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add the transaction"""
     msg = update.message.text
     msg = msg.strip()
-    dest = None
     dest_id = None
-    cat = None
     cat_id = None
     desc = ""
     for part in msg.split(","):
