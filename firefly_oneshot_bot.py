@@ -72,6 +72,23 @@ args = {
 
 
 def _get_data_from_request(url, first=False, method="GET", post_data=None):
+    """
+    Perform a request to the Firefly III API.
+
+    Args:
+        url (str): The endpoint URL or partial path (relative to api/v1).
+        first (bool, optional): If True, returns only the first page of data or the direct data object.
+            Defaults to False.
+        method (str, optional): The HTTP method to use (e.g., "GET", "POST", "DELETE").
+            Defaults to "GET".
+        post_data (dict, optional): The JSON payload for the request. Defaults to None.
+
+    Returns:
+        dict | list | None: The 'data' portion of the JSON response.
+            - For DELETE requests, returns None.
+            - For GET requests with pagination (and first=False), returns a list of all items.
+            - For other requests or first=True, returns the specific data object or list from the first page.
+    """
     logger.info("Reading from '%s'.", url)
     if "api/v1" not in url:
         url = urljoin(args["firefly_url"] + "/", "api/v1/" + url)
