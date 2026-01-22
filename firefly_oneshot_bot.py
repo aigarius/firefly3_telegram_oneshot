@@ -310,7 +310,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     if not dest_id:
-        dest_id, dest = _find_dest_account("Unknown")
+        dest_id, _ = _find_dest_account("Unknown")
         if not dest_id:
             await update.message.reply_text("Could not identify destination account.")
             return
