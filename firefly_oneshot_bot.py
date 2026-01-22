@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # pylint: disable=unused-argument
-# This program is derrived from https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/echobot.py
+# This program is derived from https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/echobot.py
 
 """
 One-shot transaction adding Telegram bot for Firefly3
@@ -34,10 +34,12 @@ being passed to the script via environment variables:
 """
 
 import datetime
+import functools
 import json
 import logging
 import os
 import requests
+from urllib.parse import urljoin
 
 from thefuzz import process
 from telegram import ForceReply, Update
@@ -67,7 +69,7 @@ args = {
 def _get_data_from_request(url, first=False, method="GET", post_data=None):
     logger.info(f"Reading from '{url}'.")
     if "api/v1" not in url:
-        url = "/".join([args["firefly_url"], "api/v1", url])
+        url = urljoin(args["firefly_url"] + "/", "api/v1/" + url)
     r = requests.request(
         method=method,
         url=url,
@@ -105,9 +107,14 @@ def _find_account_id(account_name):
     raise RuntimeError(f"Base account with name {account_name} not found")
 
 
+@functools.lru_cache(maxsize=1)
+def _get_expense_accounts_data():
+    return _get_data_from_request("accounts/?type=expense")
+
+
 def _find_dest_account(part):
     if part:
-        t = _get_data_from_request("accounts/?type=expense")
+        t = _get_expense_accounts_data()
         accounts = {
             a["attributes"]["name"]: a["id"]
             for a in t
@@ -117,12 +124,17 @@ def _find_dest_account(part):
             logger.warning("Match too bad, should make a new account")
         return accounts[name], name
         # TODO create an account if asked (prefix "+")
-    return 9, "Unknown"
+    return None, None
+
+
+@functools.lru_cache(maxsize=1)
+def _get_categories_data():
+    return _get_data_from_request("categories/")
 
 
 def _find_category(part):
     if part:
-        t = _get_data_from_request("categories/")
+        t = _get_categories_data()
         categories = {
             a["attributes"]["name"]: a["id"]
             for a in t
@@ -132,7 +144,7 @@ def _find_category(part):
             logger.warning("Match too bad, should make a new category")
         return categories[name], name
         # TODO create a category if asked (prefix "+")
-    return 3, "Entertainment - food outside"
+    return None, None
 
 
 async def restrict(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -224,10 +236,27 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             if desc:
                 desc += ", "
             desc += part
-    amount, desc = desc.split(maxsplit=1)
-    amount = float(amount)
+
+    try:
+        parts = desc.split(maxsplit=1)
+        if not parts:
+            raise ValueError("Empty message")
+        if len(parts) == 1:
+            amount = float(parts[0])
+            desc = "Unknown"
+        else:
+            amount = float(parts[0])
+            desc = parts[1]
+    except ValueError:
+        await update.message.reply_text("Could not parse message. Expected: <amount> [description]")
+        return
+
     if not dest_id:
-        dest_id, dest = _find_dest_account("unknown")
+        dest_id, dest = _find_dest_account("Unknown")
+        if not dest_id:
+            await update.message.reply_text("Could not identify destination account.")
+            return
+
     post_data = {
         "apply_rules": True,
         "transactions": [{
