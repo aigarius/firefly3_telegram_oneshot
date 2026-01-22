@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # pylint: disable=unused-argument
-# This program is derived from https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/echobot.py
+# This program is derived from
+# https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/echobot.py
 
 """
 One-shot transaction adding Telegram bot for Firefly3
@@ -42,8 +43,8 @@ import functools
 import json
 import logging
 import os
-import requests
 from urllib.parse import urljoin
+import requests
 
 from thefuzz import process
 from telegram import ForceReply, Update
@@ -83,11 +84,12 @@ def _get_data_from_request(url, first=False, method="GET", post_data=None):
             "Content-Type": "application/json",
         },
         json=post_data,
+        timeout=30,
     )
     if method == "DELETE":
         logger.debug("Data: %s", r.text)
         r.raise_for_status()
-        return
+        return None
     if method != "GET":
         logger.debug("Data: %s", r.text)
         r.raise_for_status()
@@ -131,7 +133,9 @@ def _find_dest_account(part):
                 logger.warning("Cannot create account with empty name.")
                 return None, None
             try:
-                data = _get_data_from_request("accounts", method="POST", post_data={"name": name, "type": "expense"})
+                data = _get_data_from_request(
+                    "accounts", method="POST", post_data={"name": name, "type": "expense"}
+                )
                 _get_expense_accounts_data.cache_clear()
                 return data["id"], data["attributes"]["name"]
             except requests.exceptions.RequestException as e:
@@ -211,21 +215,20 @@ Check categories with /cat and destination accounts with /dest
 def _get_last_transaction():
     """Get the last transaction details."""
     end = datetime.date.today()
-    start = end - datetime.timedelta(days=365)
+    start_date = end - datetime.timedelta(days=365)
     end = end.isoformat()
-    start = start.isoformat()
+    start_date = start_date.isoformat()
     data = _get_data_from_request(
-        f"accounts/{args['account_id']}/transactions/?type=withdrawal&limit=1&start={start}&end={end}", first=True)
+        f"accounts/{args['account_id']}/transactions/"
+        f"?type=withdrawal&limit=1&start={start_date}&end={end}",
+        first=True
+    )
     transaction = data[0]
     trans_id = transaction["id"]
     split = transaction["attributes"]["transactions"][0]
-    msg = "{:.2f} {} {}, dest={}, cat={}, id={}".format(
-        float(split["amount"]),
-        split["currency_symbol"],
-        split["description"],
-        split["destination_name"],
-        split["category_name"],
-        trans_id,
+    msg = (
+        f"{float(split['amount']):.2f} {split['currency_symbol']} {split['description']}, "
+        f"dest={split['destination_name']}, cat={split['category_name']}, id={trans_id}"
     )
     return msg, trans_id
 
@@ -268,10 +271,10 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         part = part.strip()
         if part.startswith("dest="):
             part = part[len("dest="):]
-            dest_id, dest = _find_dest_account(part)
+            dest_id, _ = _find_dest_account(part)
         elif part.startswith("cat="):
             part = part[len("cat="):]
-            cat_id, cat = _find_category(part)
+            cat_id, _ = _find_category(part)
         else:
             if desc:
                 desc += ", "
