@@ -19,8 +19,12 @@ Example usage:
 34.21
 12€
 23.12 coffee
-9€ cheese, acc=Wochenmarkt
+9€ cheese, dest=Wochenmarkt
 12 coffe, cat=food outside
+
+The text from "cat=" or "dest=" to the next comma is used to find the category
+or destination account. You can create a new category or destination account
+by prefixing the name with "+" (e.g. "cat=+Food").
 
 The script is expected to be run inside a Docker container with parameters
 being passed to the script via environment variables:

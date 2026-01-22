@@ -29,9 +29,10 @@ new bot and say "/start" once to check the connection. The following actions wor
 
 "23.12 Coffe, milk, sugar, cat=Food, dest=Edeka" - creates a new cash transaction
 
-The text from "cat=" or "dest=" to the next comma is used to fine the category
-or destination account (same as /cat and /dest commands). Default destination
-account is "Unknown" and default category is no category.
+The text from "cat=" or "dest=" to the next comma is used to find the category
+or destination account (same as /cat and /dest commands). You can create a new
+category or destination account by prefixing the name with "+" (e.g. "cat=+Food").
+Default destination account is "Unknown" and default category is no category.
 
 The one-shot nature of the message allows them to be sent when the user is actually
 offline and have the server process the messages later, when they actually arrive
