@@ -51,7 +51,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 # Enable logging
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 # set higher logging level for httpx to avoid all GET and POST requests being logged
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -85,11 +85,11 @@ def _get_data_from_request(url, first=False, method="GET", post_data=None):
         json=post_data,
     )
     if method == "DELETE":
-        logger.info("Data: %s", r.text)
+        logger.debug("Data: %s", r.text)
         r.raise_for_status()
         return
     if method != "GET":
-        logger.info("Data: %s", r.text)
+        logger.debug("Data: %s", r.text)
         r.raise_for_status()
 
     data = r.json()

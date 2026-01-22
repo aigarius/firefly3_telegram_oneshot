@@ -3,9 +3,14 @@ FROM debian:trixie-slim
 RUN set -ex \
 	&& apt-get update \
 	&& apt-get -y install python3 python3-pip python3-venv \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& useradd -m appuser \
 	&& python3 -m venv /venv \
 	&& /venv/bin/pip3 install "python-telegram-bot[http2]" requests thefuzz \
+	&& chown -R appuser:appuser /venv \
 	&& true
+
+USER appuser
 
 ARG FIREFLY_URL
 ARG FIREFLY_TOKEN
