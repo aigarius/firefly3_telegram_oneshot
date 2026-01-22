@@ -71,7 +71,7 @@ args = {
 
 
 def _get_data_from_request(url, first=False, method="GET", post_data=None):
-    logger.info(f"Reading from '{url}'.")
+    logger.info("Reading from '%s'.", url)
     if "api/v1" not in url:
         url = urljoin(args["firefly_url"] + "/", "api/v1/" + url)
     r = requests.request(
@@ -106,9 +106,9 @@ def _get_data_from_request(url, first=False, method="GET", post_data=None):
 
 
 def _find_account_id(account_name):
-
-    t = _get_data_from_request("accounts/?type=asset")
-    for account in t:
+    """Find the account ID for a given account name."""
+    data = _get_data_from_request("accounts/?type=asset")
+    for account in data:
         account_id = account["id"]
         if account["attributes"]["name"] == account_name:
             return account_id
@@ -117,10 +117,12 @@ def _find_account_id(account_name):
 
 @functools.lru_cache(maxsize=1)
 def _get_expense_accounts_data():
+    """Get the list of expense accounts."""
     return _get_data_from_request("accounts/?type=expense")
 
 
 def _find_dest_account(part):
+    """Find a destination account by partial name."""
     if part:
         part = part.strip()
         if part.startswith("+"):
@@ -136,10 +138,10 @@ def _find_dest_account(part):
                 logger.error("Failed to create account '%s': %s", name, e)
                 return None, None
 
-        t = _get_expense_accounts_data()
+        data = _get_expense_accounts_data()
         accounts = {
             a["attributes"]["name"]: a["id"]
-            for a in t
+            for a in data
         }
         name, ratio = process.extractOne(part, accounts.keys())
         if ratio < 60:
@@ -150,10 +152,12 @@ def _find_dest_account(part):
 
 @functools.lru_cache(maxsize=1)
 def _get_categories_data():
+    """Get the list of categories."""
     return _get_data_from_request("categories/")
 
 
 def _find_category(part):
+    """Find a category by partial name."""
     if part:
         part = part.strip()
         if part.startswith("+"):
@@ -169,10 +173,10 @@ def _find_category(part):
                 logger.error("Failed to create category '%s': %s", name, e)
                 return None, None
 
-        t = _get_categories_data()
+        data = _get_categories_data()
         categories = {
             a["attributes"]["name"]: a["id"]
-            for a in t
+            for a in data
         }
         name, ratio = process.extractOne(part, categories.keys())
         if ratio < 60:
@@ -182,6 +186,7 @@ def _find_category(part):
 
 
 async def restrict(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Restrict access to the bot."""
     await update.message.reply_text("Access denied")
 
 
@@ -204,30 +209,31 @@ Check categories with /cat and destination accounts with /dest
 
 
 def _get_last_transaction():
+    """Get the last transaction details."""
     end = datetime.date.today()
     start = end - datetime.timedelta(days=365)
     end = end.isoformat()
     start = start.isoformat()
-    t = _get_data_from_request(
+    data = _get_data_from_request(
         f"accounts/{args['account_id']}/transactions/?type=withdrawal&limit=1&start={start}&end={end}", first=True)
-    t = t[0]
-    id = t["id"]
-    t = t["attributes"]["transactions"][0]
+    transaction = data[0]
+    trans_id = transaction["id"]
+    split = transaction["attributes"]["transactions"][0]
     msg = "{:.2f} {} {}, dest={}, cat={}, id={}".format(
-        float(t["amount"]),
-        t["currency_symbol"],
-        t["description"],
-        t["destination_name"],
-        t["category_name"],
-        id,
+        float(split["amount"]),
+        split["currency_symbol"],
+        split["description"],
+        split["destination_name"],
+        split["category_name"],
+        trans_id,
     )
-    return msg, id
+    return msg, trans_id
 
 
 async def undo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Mark the last added transaction as deleted"""
-    msg, id = _get_last_transaction()
-    _get_data_from_request(f"transactions/{id}/", method="DELETE")
+    msg, trans_id = _get_last_transaction()
+    _get_data_from_request(f"transactions/{trans_id}/", method="DELETE")
     await update.message.reply_text("Deleted: " + msg)
 
 
@@ -238,14 +244,14 @@ async def last_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def cat_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show the user what the last added transaction looks like"""
-    id, name = _find_category(" ".join(context.args))
+    """Find a category by partial name."""
+    _, name = _find_category(" ".join(context.args))
     await update.message.reply_text(name)
 
 
 async def dest_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show the user what the last added transaction looks like"""
-    id, name = _find_dest_account(" ".join(context.args))
+    """Find a destination account by partial name."""
+    _, name = _find_dest_account(" ".join(context.args))
     await update.message.reply_text(name)
 
 
