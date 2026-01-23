@@ -23,4 +23,4 @@ jobs:
         pylint --max-line-length 120 $(git ls-files '*.py')
     - name: Analysing the code with black
       run: |
-        black --check $(git ls-files '*.py')
+        black -l 119 --check $(git ls-files '*.py')
