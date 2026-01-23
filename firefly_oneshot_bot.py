@@ -211,13 +211,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text(
-        """
+    await update.message.reply_text("""
 Add a new transaction by giving amount and description.
 Use /undo to delete /last transaction.
 Check categories with /cat and destination accounts with /dest
-    """
-    )
+    """)
 
 
 def _get_last_transaction():
