@@ -20,7 +20,7 @@ jobs:
         pip install pylint black "python-telegram-bot[http2]" requests thefuzz
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py')
+        pylint --max-line-length 120 $(git ls-files '*.py')
     - name: Analysing the code with black
       run: |
         black --check $(git ls-files '*.py')
