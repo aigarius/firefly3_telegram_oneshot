@@ -51,9 +51,7 @@ from telegram import ForceReply, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 # Enable logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 # set higher logging level for httpx to avoid all GET and POST requests being logged
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.INFO)
@@ -119,8 +117,7 @@ def _get_data_from_request(url, first=False, method="GET", post_data=None):
         return real_data
     if "links" in data and data["links"]["self"] != data["links"]["last"]:
         logger.info("Next page is there!")
-        real_data.extend(
-            _get_data_from_request(data["links"]["next"]))
+        real_data.extend(_get_data_from_request(data["links"]["next"]))
     return real_data
 
 
@@ -150,9 +147,7 @@ def _find_dest_account(part):
                 logger.warning("Cannot create account with empty name.")
                 return None, None
             try:
-                data = _get_data_from_request(
-                    "accounts", method="POST", post_data={"name": name, "type": "expense"}
-                )
+                data = _get_data_from_request("accounts", method="POST", post_data={"name": name, "type": "expense"})
                 _get_expense_accounts_data.cache_clear()
                 return data["id"], data["attributes"]["name"]
             except requests.exceptions.RequestException as e:
@@ -160,10 +155,7 @@ def _find_dest_account(part):
                 return None, None
 
         data = _get_expense_accounts_data()
-        accounts = {
-            a["attributes"]["name"]: a["id"]
-            for a in data
-        }
+        accounts = {a["attributes"]["name"]: a["id"] for a in data}
         name, ratio = process.extractOne(part, accounts.keys())
         if ratio < 60:
             logger.warning("Match too bad, should make a new account")
@@ -195,10 +187,7 @@ def _find_category(part):
                 return None, None
 
         data = _get_categories_data()
-        categories = {
-            a["attributes"]["name"]: a["id"]
-            for a in data
-        }
+        categories = {a["attributes"]["name"]: a["id"] for a in data}
         name, ratio = process.extractOne(part, categories.keys())
         if ratio < 60:
             logger.warning("Match too bad, should make a new category")
@@ -222,11 +211,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("""
+    await update.message.reply_text(
+        """
 Add a new transaction by giving amount and description.
 Use /undo to delete /last transaction.
 Check categories with /cat and destination accounts with /dest
-    """)
+    """
+    )
 
 
 def _get_last_transaction():
@@ -236,9 +227,8 @@ def _get_last_transaction():
     end = end.isoformat()
     start_date = start_date.isoformat()
     data = _get_data_from_request(
-        f"accounts/{args['account_id']}/transactions/"
-        f"?type=withdrawal&limit=1&start={start_date}&end={end}",
-        first=True
+        f"accounts/{args['account_id']}/transactions/" f"?type=withdrawal&limit=1&start={start_date}&end={end}",
+        first=True,
     )
     transaction = data[0]
     trans_id = transaction["id"]
@@ -285,10 +275,10 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     for part in msg.split(","):
         part = part.strip()
         if part.startswith("dest="):
-            part = part[len("dest="):]
+            part = part[len("dest=") :]
             dest_id, _ = _find_dest_account(part)
         elif part.startswith("cat="):
-            part = part[len("cat="):]
+            part = part[len("cat=") :]
             cat_id, _ = _find_category(part)
         else:
             if desc:
@@ -317,15 +307,17 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     post_data = {
         "apply_rules": True,
-        "transactions": [{
-            "type": "withdrawal",
-            "date": datetime.datetime.now().isoformat("T"),
-            "amount": f"{amount:.2f}",
-            "description": desc,
-            "source_id": args["account_id"],
-            "notes": "Added via Telegram",
-            "destination_id": dest_id,
-        }],
+        "transactions": [
+            {
+                "type": "withdrawal",
+                "date": datetime.datetime.now().isoformat("T"),
+                "amount": f"{amount:.2f}",
+                "description": desc,
+                "source_id": args["account_id"],
+                "notes": "Added via Telegram",
+                "destination_id": dest_id,
+            }
+        ],
     }
     if cat_id:
         post_data["transactions"][0]["category_id"] = cat_id
@@ -340,12 +332,10 @@ def main() -> None:
     logger.info("Category: %s", _find_category("medical"))
 
     # Create the Application and pass it your bot's token.
-    application = Application.builder().token(
-        os.environ["TELEGRAM_BOT_TOKEN"]).build()
+    application = Application.builder().token(os.environ["TELEGRAM_BOT_TOKEN"]).build()
 
     # Restrict bot to the specified user_id
-    restrict_handler = MessageHandler(~ filters.User(
-        int(os.environ["TELEGRAM_ALLOW_USERID"])), restrict)
+    restrict_handler = MessageHandler(~filters.User(int(os.environ["TELEGRAM_ALLOW_USERID"])), restrict)
     application.add_handler(restrict_handler)
 
     # on different commands - answer in Telegram
@@ -355,14 +345,12 @@ def main() -> None:
     application.add_handler(CommandHandler("undo", undo_command))
     application.add_handler(CommandHandler("last", last_command))
 
-    application.add_handler(CommandHandler(
-        "dest", dest_command, has_args=True))
+    application.add_handler(CommandHandler("dest", dest_command, has_args=True))
     application.add_handler(CommandHandler("cat", cat_command, has_args=True))
 
     # on non command i.e message - parse a new transaction out
     # of the message
-    application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND, add))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, add))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
